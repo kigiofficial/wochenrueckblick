@@ -5,7 +5,8 @@ import os
 import datetime
 from datetime import timezone
 from dotenv import load_dotenv
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 # Load environment variables (useful for local testing)
 load_dotenv()
@@ -15,19 +16,20 @@ API_KEY = os.getenv("GEMINI_API_KEY")
 if not API_KEY:
     print("Warning: GEMINI_API_KEY is not set.")
 
-genai.configure(api_key=API_KEY)
+# New SDK Client
+client = genai.Client(api_key=API_KEY)
 
-# News often contains sensitive topics (war, accidents) which can trigger safety filters.
+# News often contains sensitive topics which can trigger safety filters.
 # We set these to BLOCK_NONE to ensure the scraper works for all news.
 safety_settings = [
-    {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
-    {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
-    {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
-    {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+    types.SafetySetting(category='HARM_CATEGORY_HARASSMENT', threshold='BLOCK_NONE'),
+    types.SafetySetting(category='HARM_CATEGORY_HATE_SPEECH', threshold='BLOCK_NONE'),
+    types.SafetySetting(category='HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold='BLOCK_NONE'),
+    types.SafetySetting(category='HARM_CATEGORY_DANGEROUS_CONTENT', threshold='BLOCK_NONE'),
 ]
 
-# Using 1.5 flash as it is very stable and widely available
-model = genai.GenerativeModel('gemini-1.5-flash')
+# Using 2.0 flash as it is the latest and fastest
+MODEL_ID = 'gemini-2.0-flash'
 
 # Feeds
 FEEDS = [
@@ -124,21 +126,30 @@ def categorize_articles(articles):
         if not API_KEY:
             raise ValueError("GEMINI_API_KEY is empty or not set.")
         
-        response = model.generate_content(prompt, safety_settings=safety_settings)
+        response = client.models.generate_content(
+            model=MODEL_ID,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                safety_settings=safety_settings,
+                response_mime_type='application/json'
+            )
+        )
         
         if not response.text:
             print("AI response was empty. Check safety filters or prompt.")
             return articles # Return un-categorized
 
-        text_response = response.text.strip()
+        classification_result = response.parsed
         
-        # Remove markdown notation if the model returns it
-        if text_response.startswith('```json'):
-            text_response = text_response[7:]
-        if text_response.endswith('```'):
-            text_response = text_response[:-3]
-        
-        classification_result = json.loads(text_response.strip())
+        # In case parsed is not available or doesn't work as expected, fallback to json.loads
+        if not classification_result:
+            text_response = response.text.strip()
+            # Remove markdown notation if the model returns it
+            if text_response.startswith('```json'):
+                text_response = text_response[7:]
+            if text_response.endswith('```'):
+                text_response = text_response[:-3]
+            classification_result = json.loads(text_response.strip())
         
         # Map back to articles
         count = 0
@@ -156,8 +167,7 @@ def categorize_articles(articles):
                 
     except Exception as e:
         print(f"Error during AI categorization: {e}")
-        if hasattr(e, 'message'): print(f"Details: {e.message}")
-        # Mark all as Andere so they don't break the JSON but won't be shown as fake news
+        # Mark all as Andere so they don't break the JSON
         for a in articles:
             a["category"] = "Andere"
             a["is_important"] = False
