@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nachrichten Kompakt: Tagesschau & ZDF</title>
+    <meta name="description" content="Tages- und Wochenrückblick mit Fokus auf Bundesinnenpolitik, Ausland, Baden-Württemberg und Wirtschaft.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="fixed-bg"></div>
+    
+    <div class="container">
+        <header class="header">
+            <div class="branding">
+                <h1>Nachrichten <span>Kompakt</span></h1>
+                <p>KI-kuratierter Rückblick aus Tagesschau & ZDFheute</p>
+            </div>
+            
+            <div class="controls">
+                <div class="toggle-container">
+                    <button id="btnDaily" class="toggle-btn active" onclick="switchView('täglich')">Tage</button>
+                    <button id="btnWeekly" class="toggle-btn" onclick="switchView('wöchentlich')">Wochen</button>
+                </div>
+                
+                <div class="time-nav">
+                    <button id="btnPrev" onclick="navigateTime(1)" class="nav-btn">&larr;</button>
+                    <span id="currentTimeLabel" class="time-label">Laden...</span>
+                    <button id="btnNext" onclick="navigateTime(-1)" class="nav-btn" disabled>&rarr;</button>
+                </div>
+
+                <label class="unimportant-toggle">
+                    <input type="checkbox" id="checkUnimportant" onchange="toggleUnimportant()"> Unwichtige anzeigen
+                </label>
+                
+                <div class="last-updated" id="lastUpdated">Laden...</div>
+            </div>
+        </header>
+
+        <main class="grid-layout" id="mainContent">
+            <!-- Categories will be injected here via JavaScript -->
+        </main>
+        
+        <footer class="footer">
+            <p>Automatisch aktualisiert via GitHub Actions. Alle Rechte an den Inhalten liegen bei den jeweiligen Sendeanstalten (Tagesschau, ZDF).</p>
+        </footer>
+    </div>
+
+    <!-- Template for a category column -->
+    <template id="category-template">
+        <section class="category-column">
+            <div class="category-header">
+                <div class="category-icon"></div>
+                <h2 class="category-title"></h2>
+            </div>
+            <div class="articles-container"></div>
+        </section>
+    </template>
+
+    <!-- Template for a news card -->
+    <template id="article-template">
+        <article class="news-card" onclick="this.classList.toggle('expanded')">
+            <div class="card-meta">
+                <span class="source-tag"></span>
+                <span class="time-tag"></span>
+            </div>
+            <h3 class="card-title"><a href="#" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()"></a></h3>
+            <div class="card-description-container">
+                <p class="card-description"></p>
+                <div class="expand-hint">Klicken zum Erweitern</div>
+            </div>
+        </article>
+    </template>
+
+    <script src="app.js"></script>
+</body>
+</html>
